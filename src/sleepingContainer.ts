@@ -1,4 +1,5 @@
-import { spawn, execSync } from 'child_process';
+import { spawn } from 'child_process';
+import { ping, OldPingResult } from 'minecraft-protocol';
 
 import { getLogger, LoggerType } from './sleepingLogger';
 import { Settings } from './sleepingSettings';
@@ -45,26 +46,39 @@ export class SleepingContainer implements ISleepingServer {
     startMinecraft = async (onProcessClosed: () => void) => {
         this.logger.info(`----------- Starting Minecraft : ${this.settings.minecraftCommand} ----------- `);
 
-        if (this.settings.webPort > 0) {
-            const cmdArgs = this.settings.minecraftCommand.split(' ');
-            const exec = cmdArgs.splice(0, 1)[0];
-            const mcProcess = spawn(exec, cmdArgs, {
-                stdio: 'inherit',
-                cwd: this.settings.minecraftWorkingDirectory ?? process.cwd()
-            });
+        const cmdArgs = this.settings.minecraftCommand.split(' ');
+        const exec = cmdArgs.splice(0, 1)[0];
+        const mcProcess = spawn(exec, cmdArgs, {
+            stdio: 'inherit',
+            cwd: this.settings.minecraftWorkingDirectory ?? process.cwd()
+        });
 
-            mcProcess.on('close', code => {
-                this.logger.info(`----------- Minecraft stopped ${code} -----------`);
-                onProcessClosed();
-            });
-        } else {
-            execSync(this.settings.minecraftCommand, {
-                stdio: 'inherit',
-                cwd: this.settings.minecraftWorkingDirectory ?? process.cwd()
-            });
-            this.logger.info('----------- Minecraft stopped -----------');
+        setInterval(() => {
+
+            ping({
+                host: 'localhost',
+                port: this.settings.serverPort,
+                version: this.settings.version || '1.17.1'
+            },
+                (err, res) => {
+                    if (err)
+                        console.error(err);
+                    else {
+                        let data = res as any;
+                        let players: number;
+                        if (data.players != undefined)
+                            players = data.players.online;
+                        else
+                            players = data.playerCount;
+                    }
+                });
+
+        }, 30 * 1000);
+
+        mcProcess.on('close', code => {
+            this.logger.info(`----------- Minecraft stopped ${code} -----------`);
             onProcessClosed();
-        }
+        });
 
     };
 
@@ -80,7 +94,6 @@ export class SleepingContainer implements ISleepingServer {
         }
 
         if (isThisTheEnd) {
-
             if (this.webServer) {
                 this.webServer.close();
             }
