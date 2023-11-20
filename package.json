@@ -15,7 +15,7 @@
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "dependencies": {
-        "@jsprismarine/prismarine": "0.1.0-rc.49",
+        "@jsprismarine/prismarine": "0.1.0-rc.52",
         "@jsprismarine/raknet": "0.1.0-rc.49",
         "express": "^4.17.1",
         "express-handlebars": "^5.3.0",
